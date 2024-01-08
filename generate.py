@@ -11,4 +11,4 @@ def run(n=10**6):
     for _ in range(0, n):
         f.write(f"{gen_random()}\n");
 
-run(10**7);
+run(10**6);
