@@ -2,13 +2,17 @@
 #define STB_DS_IMPLEMENTATION
 #include "stb_ds.h"
 #include <assert.h>
+#include <fcntl.h>
 #include <math.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 typedef struct calculations {
   float sum_map[26];
@@ -19,11 +23,12 @@ typedef struct calculations {
 } calculations;
 
 struct task {
-  FILE *fp;
   long int start;
   long int end;
   long int counter;
   calculations calc;
+  char *filename;
+  char *stream;
 };
 int parse_file(FILE *, long int, long int, long int);
 void split_chunks(char *, int, int);

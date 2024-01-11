@@ -32,12 +32,10 @@ void execute_tasks(struct task *tasks, int workers) {
   print_report(&result);
 }
 
-struct task create_task(char *filename, long int start, long int end) {
-  FILE *fp = fopen(filename, "rb");
-  fseek(fp, start, 0);
-
+struct task create_task(char *filename, long int start, long int end,
+                        char *stream) {
   calculations x = {{0.0}, {0.0}, {0.0}, {0}, 0};
-  return (struct task){fp, start, end, 0, x};
+  return (struct task){start, end, 0, x, filename, stream};
 }
 
 void *executeChunkTask(void *arg) {
@@ -100,48 +98,58 @@ void print_report(calculations *x) {
 }
 
 void processChunk(struct task *t) {
-  struct {
-    char *key;
-    float value[2];
-  } *sumMap = NULL;
-  FILE *fp = t->fp;
-  fseek(fp, t->start, SEEK_SET);
-  char line[16];
+  char *stream = t->stream;
+  char *f = stream + t->start;
 
   calculations *x = &t->calc;
+  int newlineIndex = strcspn(f, "\n");
+  char line[16];
   long int counter = 0;
-  while (ftell(fp) < t->end) {
-    if (fgets(line, 16, fp) != NULL) {
-      int delim_index = strcspn(line, ";");
-      counter++;
-      char *tempS = &line[0] + delim_index + 1;
-      if (tempS != NULL) {
-        float temp = parse_temperature(tempS);
-        int index = line[0] - 'A';
-        processCalculations(x, index, temp);
-      }
+  long int bytes_read = 0;
+  int delim_index;
+  char *tempS = NULL;
+  float temp;
+  int cityIndex;
+
+  while (bytes_read < (t->end - t->start)) {
+    newlineIndex = strcspn(f, "\n");
+    memcpy(line, f, newlineIndex);
+    f = f + newlineIndex + 1;
+    bytes_read += (newlineIndex + 1);
+    delim_index = strcspn(line, ";");
+    counter++;
+    tempS = &line[0] + delim_index + 1;
+    if (tempS != NULL) {
+      temp = parse_temperature(tempS);
+      cityIndex = f[0] - 'A';
+      processCalculations(x, cityIndex, temp);
     }
   }
   x->lines_counted = counter;
   t->counter = counter;
-  fclose(t->fp);
   return;
 }
 
 struct task *prepare_tasks(char *filename, int workers) {
-
   FILE *fp = fopen(filename, "rb");
   fseek(fp, 0L, SEEK_END);
   long int size = ftell(fp);
   rewind(fp);
   long int chunkSize = size / workers;
   long int base = 0L;
+
+  int fd = fileno(fp);
+  char *f = mmap(0, size, PROT_READ, MAP_SHARED, fd, 0);
+  if (f == MAP_FAILED) {
+    perror("mmap");
+    exit(EXIT_FAILURE);
+  }
   struct task *tasks = (struct task *)malloc(sizeof(struct task) * workers);
   int chunkNumber = 0;
   for (;;) {
     long int chunkEnd = base + chunkSize;
     if (chunkEnd >= size) {
-      tasks[chunkNumber] = create_task(filename, base, size);
+      tasks[chunkNumber] = create_task(filename, base, size, f);
       break;
     }
 
@@ -155,7 +163,7 @@ struct task *prepare_tasks(char *filename, int workers) {
       chunkEnd++;
     }
 
-    tasks[chunkNumber] = create_task(filename, base, chunkEnd);
+    tasks[chunkNumber] = create_task(filename, base, chunkEnd, f);
     base = chunkEnd + 1;
     chunkNumber++;
   }
