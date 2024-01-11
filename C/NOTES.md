@@ -1,4 +1,4 @@
-Part 2 : 6/1/24
+# Part 2 : 6/1/24
 - If i open the files seek and keep it ready there's an improvement
 - A basic pre-processor which finds the right offsets to split the file reads optimizes the shit out it !!
     - All I had to do was to iterate until I find the next \n and lulz.
@@ -57,7 +57,7 @@ Part 2 : 6/1/24
                   SMD I read 1000000000 lines 
                   ./onebrc.o  185.05s user 21.59s system 711% cpu 29.027 total
 
-Part 3 :  7/1/24
+# Part 3 :  7/1/24
 - atof is not too bad when I compile it with -O3 optimizations
     - Down to almost ~32s
 
@@ -75,7 +75,7 @@ Part 3 :  7/1/24
     - Total lines counted : 1000000000
        17.30 real       103.62 user        19.96 sys
 
-Part 4: 10/1/24
+# Part 4: 10/1/24
 - Opening files and reading them in threads is a bit costly, lets use mmap
 - mmap gives significant boost for reading but unfortunately this also means we have to do repeated memcpy for our lines to parse
 - strncpy is worse than memcpy
