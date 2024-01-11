@@ -62,3 +62,32 @@ Part 3 :  7/1/24
     - Down to almost ~32s
 
 - Gonna use stb_ds.h to setup hashmap <char *, double>
+    - stb is an overkill i feel for our tiny requirement
+- We need to parse the strings on our own, and our dummy data format just has one char as the city name so should be fine
+- The result structures need to be properly allocated otherwise we cannot compute it
+- **** READ THE REQUIREMENTS PROPERLY ****
+    - There was no need to parse a full precision double which we were trying to do till now
+    - The requirements clearly say that the temperature is with 1 decimal part.
+    - atof/atoi/fscanf with %f all of them are overkills for this and just not worth it
+- Parsing the line into city and temperature on our own is the best bet
+    - atof for the temperature is still bad, we parse the integer and decimal part separately and get a float
+- Execution time down to ~20s , les fukin gooo
+    - Total lines counted : 1000000000
+       17.30 real       103.62 user        19.96 sys
+
+Part 4: 10/1/24
+- Opening files and reading them in threads is a bit costly, lets use mmap
+- mmap gives significant boost for reading but unfortunately this also means we have to do repeated memcpy for our lines to parse
+- strncpy is worse than memcpy
+- Some good learning about mmap
+    - No need to spin up a separate copy of mmap in each thread, it leads to mmap error for some reason
+    - One mmap pointer shared across all the threads
+    - Since mmap is opened with PROT_READ , really cannot modify the stream
+        - For example, if I want to parse the temperature with atoi/atof which expect a \0 terminated string I cannot do
+            f[x] = '\0' -> Leads to bus error which is valid
+- The CPU usage goes down drastically, without mmap, all my cores were running at 100% utilization, now it hardly shoots up to 50-60%
+- To work around the null termination, we memcpy the n bytes into a char array , this is a bottleneck
+- The execution times are the best till now around ~13.5s
+    - Total lines counted : 1000000000
+      ./onebrc.o  41.63s user 13.59s system 423% cpu 13.031 total
+
